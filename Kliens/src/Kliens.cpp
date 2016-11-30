@@ -13,7 +13,7 @@ using namespace std;
 int main() {
 	TcpClient* client = new TcpClient("127.0.0.1");
 	client->clientConnect();
-	client->clientSend();
+	client->clientSend("szia szerver");
 	client->cleanUp();
 	return 0;
 }

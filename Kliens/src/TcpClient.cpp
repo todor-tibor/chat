@@ -13,15 +13,15 @@ TcpClient::TcpClient(string hostAddres) {
 
 TcpClient::~TcpClient() {
 }
-boolean TcpClient::clientConnect() {
+
+void TcpClient::clientConnect() {
 	// Initialize Winsock
 	WSADATA wsaData;
 	struct addrinfo *result = NULL, hints;
 
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0) {
-		cout << "WSAStartup failed with error: %d\n" << iResult;
-		return false;
+		throw TcpException("WSAStartup failed with error");
 	}
 
 	ZeroMemory( &hints, sizeof(hints) );
@@ -32,17 +32,15 @@ boolean TcpClient::clientConnect() {
 	// Resolve the server address and port
 	iResult = getaddrinfo(this->address.c_str(), DEFAULT_PORT, &hints, &result);
 	if (iResult != 0) {
-		cout << "getaddrinfo failed with error: %d\n" << iResult;
 		WSACleanup();
-		return false;
+		throw TcpException("getaddrinfo failed with error");
 	}
 
 	ConnectSocket = socket(result->ai_family, result->ai_socktype,
 			result->ai_protocol);
 	if (ConnectSocket == INVALID_SOCKET) {
-		cout << "socket failed with error: %ld\n" << WSAGetLastError();
 		WSACleanup();
-		return 1;
+		throw TcpException("socket failed with error");
 	}
 
 	// Connect to server.
@@ -50,26 +48,23 @@ boolean TcpClient::clientConnect() {
 	if (iResult == SOCKET_ERROR) {
 		closesocket(ConnectSocket);
 		ConnectSocket = INVALID_SOCKET;
+		throw TcpException("connecting failed");
 	}
-	return true;
 }
 
-boolean TcpClient::clientSend() {
-	char *sendbuf = "this is a test";
-	// Send an initial buffer
-	int iResult = send(ConnectSocket, sendbuf, (int) strlen(sendbuf), 0);
+void TcpClient::clientSend(string message) {
+	int iResult = send(ConnectSocket, message.c_str(),
+			(int) strlen(message.c_str()), 0);
 	if (iResult == SOCKET_ERROR) {
 		cout << "send failed with error: %d\n" << WSAGetLastError();
 		closesocket(ConnectSocket);
 		WSACleanup();
-		return 1;
+		throw TcpException("failed to send");
 	}
-	return true;
 }
 
-boolean TcpClient::cleanUp() {
-	// cleanup
+void TcpClient::() {
+	// cleanupcleanUp
 	closesocket(ConnectSocket);
 	WSACleanup();
-	return true;
 }
