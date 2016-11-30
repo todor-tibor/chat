@@ -7,42 +7,64 @@
 
 #include "TcpClient.h"
 
-TcpClient::TcpClient() {
-
+TcpClient::TcpClient(string hostAddres) {
+	this->address = hostAddres;
 }
 
 TcpClient::~TcpClient() {
 }
 
-boolean TcpClient::initializeWinsock() {
+void TcpClient::clientConnect() {
+	// Initialize Winsock
 	WSADATA wsaData;
-	WORD version;
-	int error;
+	struct addrinfo *result = NULL, hints;
 
-	version = MAKEWORD(2, 0);
-
-	error = WSAStartup(version, &wsaData);
-
-	/* check for error */
-	if (error != 0) {
-		/* error occured */
-		return false;
+	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0) {
+		throw TcpException("WSAStartup failed with error");
 	}
 
-	/* check for correct version */
-	if ( LOBYTE( wsaData.wVersion ) != 2 ||
-	HIBYTE( wsaData.wVersion ) != 0) {
-		/* incorrect WinSock version */
+	ZeroMemory( &hints, sizeof(hints) );
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+	// Resolve the server address and port
+	iResult = getaddrinfo(this->address.c_str(), DEFAULT_PORT, &hints, &result);
+	if (iResult != 0) {
 		WSACleanup();
-		return false;
+		throw TcpException("getaddrinfo failed with error");
 	}
 
-	SOCKET conn;
-	conn = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (conn == INVALID_SOCKET) {
-		// error
-		return false;
+	ConnectSocket = socket(result->ai_family, result->ai_socktype,
+			result->ai_protocol);
+	if (ConnectSocket == INVALID_SOCKET) {
+		WSACleanup();
+		throw TcpException("socket failed with error");
 	}
 
-	return true;
+	// Connect to server.
+	iResult = connect(ConnectSocket, result->ai_addr, (int) result->ai_addrlen);
+	if (iResult == SOCKET_ERROR) {
+		closesocket(ConnectSocket);
+		ConnectSocket = INVALID_SOCKET;
+		throw TcpException("connecting failed");
+	}
+}
+
+void TcpClient::clientSend(string message) {
+	int iResult = send(ConnectSocket, message.c_str(),
+			(int) strlen(message.c_str()), 0);
+	if (iResult == SOCKET_ERROR) {
+		cout << "send failed with error: %d\n" << WSAGetLastError();
+		closesocket(ConnectSocket);
+		WSACleanup();
+		throw TcpException("failed to send");
+	}
+}
+
+void TcpClient::() {
+	// cleanupcleanUp
+	closesocket(ConnectSocket);
+	WSACleanup();
 }

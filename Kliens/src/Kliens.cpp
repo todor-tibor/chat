@@ -7,9 +7,13 @@
 //============================================================================
 
 #include <iostream>
+#include "TcpClient.h"
 using namespace std;
 
 int main() {
-	cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
+	TcpClient* client = new TcpClient("127.0.0.1");
+	client->clientConnect();
+	client->clientSend("szia szerver");
+	client->cleanUp();
 	return 0;
 }
