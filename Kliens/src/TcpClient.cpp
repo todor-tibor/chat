@@ -7,42 +7,69 @@
 
 #include "TcpClient.h"
 
-TcpClient::TcpClient() {
-
+TcpClient::TcpClient(string hostAddres) {
+	this->address = hostAddres;
 }
 
 TcpClient::~TcpClient() {
 }
-
-boolean TcpClient::initializeWinsock() {
+boolean TcpClient::clientConnect() {
+	// Initialize Winsock
 	WSADATA wsaData;
-	WORD version;
-	int error;
+	struct addrinfo *result = NULL, hints;
 
-	version = MAKEWORD(2, 0);
-
-	error = WSAStartup(version, &wsaData);
-
-	/* check for error */
-	if (error != 0) {
-		/* error occured */
+	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0) {
+		cout << "WSAStartup failed with error: %d\n" << iResult;
 		return false;
 	}
 
-	/* check for correct version */
-	if ( LOBYTE( wsaData.wVersion ) != 2 ||
-	HIBYTE( wsaData.wVersion ) != 0) {
-		/* incorrect WinSock version */
+	ZeroMemory( &hints, sizeof(hints) );
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+	// Resolve the server address and port
+	iResult = getaddrinfo(this->address.c_str(), DEFAULT_PORT, &hints, &result);
+	if (iResult != 0) {
+		cout << "getaddrinfo failed with error: %d\n" << iResult;
 		WSACleanup();
 		return false;
 	}
 
-	SOCKET conn;
-	conn = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (conn == INVALID_SOCKET) {
-		// error
-		return false;
+	ConnectSocket = socket(result->ai_family, result->ai_socktype,
+			result->ai_protocol);
+	if (ConnectSocket == INVALID_SOCKET) {
+		cout << "socket failed with error: %ld\n" << WSAGetLastError();
+		WSACleanup();
+		return 1;
 	}
 
+	// Connect to server.
+	iResult = connect(ConnectSocket, result->ai_addr, (int) result->ai_addrlen);
+	if (iResult == SOCKET_ERROR) {
+		closesocket(ConnectSocket);
+		ConnectSocket = INVALID_SOCKET;
+	}
+	return true;
+}
+
+boolean TcpClient::clientSend() {
+	char *sendbuf = "this is a test";
+	// Send an initial buffer
+	int iResult = send(ConnectSocket, sendbuf, (int) strlen(sendbuf), 0);
+	if (iResult == SOCKET_ERROR) {
+		cout << "send failed with error: %d\n" << WSAGetLastError();
+		closesocket(ConnectSocket);
+		WSACleanup();
+		return 1;
+	}
+	return true;
+}
+
+boolean TcpClient::cleanUp() {
+	// cleanup
+	closesocket(ConnectSocket);
+	WSACleanup();
 	return true;
 }

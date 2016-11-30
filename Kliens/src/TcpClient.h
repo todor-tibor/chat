@@ -4,25 +4,29 @@
  *  Created on: Nov 30, 2016
  *      Author: Baltak
  */
-
-#include<iostream>    //cout
-#include<stdio.h> //printf
-#include<string.h>    //strlen
-#include<string>  //string
+#define _WIN32_WINNT  0x501
+#include <windows.h>
 #include <winsock2.h>
-#include <stdio.h>
+#include <ws2tcpip.h>
+#include <iostream>
 
 using namespace std;
 
 #ifndef TCPCLIENT_H_
 #define TCPCLIENT_H_
 
+#define DEFAULT_PORT "27015"
+#define DEFAULT_BUFLEN 512
+
 class TcpClient {
 private:
-
+	SOCKET ConnectSocket = INVALID_SOCKET;
+	string address;
 public:
-	boolean initializeWinsock();
-	TcpClient();
+	boolean clientConnect();
+	boolean clientSend();
+	boolean cleanUp();
+	TcpClient(string hostAddress);
 	virtual ~TcpClient();
 };
 
